@@ -1,17 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Drawing;
 
 namespace Snake
 {
     /// <summary>
-    /// Класс Snake — логика движения, роста и столкновений змейки.
+    /// Логика змейки: тело, движение, рост, столкновение.
     /// </summary>
     public class Snake
     {
         public List<Point> Body { get; private set; }
         public Direction CurrentDirection { get; set; }
-
         private int cellSize;
 
         public Snake(int startX, int startY, int cellSize)

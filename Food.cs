@@ -8,7 +8,7 @@ using System.Drawing;
 namespace Snake
 {
     /// <summary>
-    /// Класс Food — управляет генерацией и отрисовкой еды.
+    /// Представляет еду: случайная позиция + отрисовка.
     /// </summary>
     public class Food
     {
