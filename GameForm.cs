@@ -1,102 +1,93 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Diagnostics;
 
-
 namespace Snake
 {
-
-    //------------  Главное окно, обрабатывающее весь игровой процесс. ---------------
-
-
-    public partial class GameForm : Form // класс формы  — основное окно игры от Form.
+    /// <summary>
+    /// Главное окно — сама игра.
+    /// </summary>
+    public partial class GameForm : Form
     {
-        private string LevelManagerDifficultyName()
-        {
-            return LevelManager.GetDifficultyName();
-        }
-        private Stopwatch stopwatch = new Stopwatch();  //таймер сверху
-
-        private System.Windows.Forms.Timer gameTimer;   // таймер для движения змейки по тикам
-        private const int cellSize = 20;      // размер ячейки
-        private Snake snake;                  // объект змейки
-        private Food food;                    // объект еды   
-        private int elapsedSeconds = 0; // Время, прошедшее с начала игры (в секундах)
-
-        //----
-
-        //------------------------------------ Сама форма ---------------------------
+        private Stopwatch stopwatch = new Stopwatch();                   // Таймер времени
+        private Timer gameTimer;                                         // Таймер тиков змейки
+        private const int cellSize = 20;                                 // Размер одной ячейки
+        private Snake snake;                                             // Объект змейки
+        private Food food;                                               // Объект еды
+        private int elapsedSeconds = 0;                                  // Счётчик времени
+        private List<Point> walls = new();                               // Список точек-стен
 
         public GameForm()
         {
             InitializeComponent();
 
             this.Text = "Snake";
-            this.Width = 600;
-            this.Height = 400;
+            this.ClientSize = new Size(800, 600);                       // Размер игровой области
             this.DoubleBuffered = true;
             this.BackColor = Color.Black;
 
-            snake = new Snake(100, 100, cellSize); // создание объекта
-            food = new Food(ClientSize.Width, ClientSize.Height, cellSize); // создаём еду в случайном месте внутри окна.
-            Obstacle.Generate(ClientSize.Width, ClientSize.Height, cellSize); //создание стенок
+            snake = new Snake(100, 100, cellSize);
+            food = new Food(ClientSize.Width, ClientSize.Height, cellSize);
 
-
-            // старт
+            GenerateWalls();                                            // Создаём стены
 
             stopwatch.Start();
-            gameTimer = new System.Windows.Forms.Timer();
-            gameTimer.Interval = LevelManager.GetStartInterval();
+            gameTimer = new Timer();
+            gameTimer.Interval = 100;
             gameTimer.Tick += GameTick;
-            
-            Invalidate();// Перерисовать форму, чтобы обновился экран
 
+            ScoreManager.Reset();
+            LevelManager.Reset();
+            GameSound.Init();
+            GameSound.PlayMusic();
 
-            ScoreManager.Reset();        // сброс очков
-            LevelManager.Reset();        // сброс уровня
-            GameSound.Init();            // загрузка звуков
-            GameSound.PlayMusic();       // фоновая музыка
-
-            //Запуск таймера и событий формы
-
-            gameTimer.Start();// запускаем игровой таймер
+            gameTimer.Start();
 
             this.KeyDown += GameForm_KeyDown;
             this.Paint += GameForm_Paint;
         }
 
-        //--------------------------------- Проверки и так далее ----------------------------------------
+        /// <summary>
+        /// Создаёт стены по краям игрового поля.
+        /// </summary>
+        private void GenerateWalls()
+        {
+            int width = ClientSize.Width;
+            int height = ClientSize.Height;
 
-        private void GameTick(object? sender, EventArgs e) 
+            walls.Clear();
+
+            // Горизонтальные стены (верхняя и нижняя)
+            for (int x = 0; x < width; x += cellSize)
+            {
+                walls.Add(new Point(x, 0));                       // Верх
+                walls.Add(new Point(x, height - cellSize));       // Низ
+            }
+
+            // Вертикальные стены (левая и правая)
+            for (int y = 0; y < height; y += cellSize)
+            {
+                walls.Add(new Point(0, y));                       // Левая
+                walls.Add(new Point(width - cellSize, y));        // Правая
+            }
+        }
+
+        private void GameTick(object? sender, EventArgs e)
         {
             snake.Move();
 
-            if (snake.IsSelfCollision() || IsWallCollision() || Obstacle.IsCollision(snake.Body[0]))
-            {
-                gameTimer.Stop();
-                GameSound.StopMusic();
-                GameSound.PlayLose();
-
-                string name = PlayerInput.AskPlayerName();
-                ScoreManager.SaveResult(name);
-                HighScoreUI.Show();
-
-                Close();
-            }
-
-
-            if (snake.Body[0] == food.Position) //Если голова змейки совпала с едой
+            if (snake.Body[0] == food.Position)
             {
                 snake.Grow();
                 food.GenerateNew(ClientSize.Width, ClientSize.Height, cellSize);
-
                 ScoreManager.AddPoint();
                 LevelManager.UpdateLevel(gameTimer);
                 GameSound.PlayEat();
             }
 
-            if (snake.IsSelfCollision() || IsWallCollision())//Если змейка врезалась в себя или в стену
+            if (snake.IsSelfCollision() || IsWallCollision())
             {
                 gameTimer.Stop();
                 GameSound.StopMusic();
@@ -109,22 +100,19 @@ namespace Snake
                 Close();
             }
 
-            Invalidate(); // Нужно оставить, чтобы форма перерисовывалась
+            Invalidate(); // Перерисовать форму
         }
 
-
-        //----------------------- Проверка: не вышла ли змейка за пределы окна.------------------
-
-        private bool IsWallCollision() 
+        /// <summary>
+        /// Проверка: врезалась ли змейка в стену.
+        /// </summary>
+        private bool IsWallCollision()
         {
             Point head = snake.Body[0];
-            return head.X < 0 || head.X >= ClientSize.Width || head.Y < 0 || head.Y >= ClientSize.Height;
+            return walls.Contains(head);
         }
 
-        // --------------------------------------- Кнопочки ---------------------------------------
-
         private void GameForm_KeyDown(object? sender, KeyEventArgs e)
-
         {
             switch (e.KeyCode)
             {
@@ -147,51 +135,37 @@ namespace Snake
             }
 
             if (e.KeyCode == Keys.H)
-            {
                 HighScoreUI.Show();
-            }
         }
 
-        //--------------------------------- Дизайн так сказать ----------------------------------
-
-        private void GameForm_Paint(object? sender, PaintEventArgs e){
-
-            //Рисуем стенки
-            Obstacle.Draw(e.Graphics, Brushes.Gray, cellSize);
-
-            // Рисуем змейку (зелёным цветом)
-            snake.Draw(e.Graphics, Brushes.Green);
-
-            // Рисуем еду (красным цветом)
-            food.Draw(e.Graphics, Brushes.Red);
-
-            // Обновляем количество секунд с начала игры
+        private void GameForm_Paint(object? sender, PaintEventArgs e)
+        {
+            // Обновляем прошедшее время
             elapsedSeconds = (int)stopwatch.Elapsed.TotalSeconds;
 
-            // Настраиваем шрифт и кисть для текста
-            using Font font = new Font("Arial", 14);
-            using Brush brush = Brushes.White;
+            // Шрифт и кисти
+            using Font font = new("Arial", 14);
+            using Brush white = Brushes.White;
 
-            // Рисуем счёт
-            string scoreText = $"Очки: {ScoreManager.Score}";
-            e.Graphics.DrawString(scoreText, font, brush, new PointF(10, 10));
+            // Рисуем змейку и еду
+            snake.Draw(e.Graphics, Brushes.Green);
+            food.Draw(e.Graphics, Brushes.Red);
 
-            // Рисуем время
-            string timeText = $"Время: {elapsedSeconds} сек";
-            e.Graphics.DrawString(timeText, font, brush, new PointF(10, 35));
+            // Рисуем стены
+            foreach (var wall in walls)
+                e.Graphics.FillRectangle(Brushes.Gray, wall.X, wall.Y, cellSize, cellSize);
 
-            // Получаем цвет в зависимости от сложности
-            Color difficultyColor = LevelManager.GetDifficultyColor();
+            // Время
+            e.Graphics.DrawString($"Время: {elapsedSeconds} сек", font, white, new PointF(10, 10));
 
-            // Создаём кисть для сложности
-            using Brush difficultyBrush = new SolidBrush(difficultyColor);
+            // Очки
+            e.Graphics.DrawString($"Очки: {ScoreManager.Score}", font, white, new PointF(10, 35));
 
-            // Рисуем сложность с цветом
-            string difficultyText = $"Сложность: {LevelManager.GetDifficultyName()}";
-            e.Graphics.DrawString(difficultyText, font, difficultyBrush, new PointF(10, 60));
-
-          
+            // Сложность
+            string difficulty = LevelManager.GetDifficultyName();
+            Color diffColor = LevelManager.GetDifficultyColor();
+            using Brush diffBrush = new SolidBrush(diffColor);
+            e.Graphics.DrawString($"Сложность: {difficulty}", font, diffBrush, new PointF(10, 60));
         }
-
     }
 }
