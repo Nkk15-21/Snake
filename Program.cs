@@ -21,7 +21,8 @@ namespace Snake
             Application.SetCompatibleTextRenderingDefault(false);
 
             // Запускаем главное окно игры
-            Application.Run(new GameForm());
+            Application.Run(new MainMenuForm());
+
         }
     }
 }

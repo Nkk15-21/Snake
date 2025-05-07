@@ -11,12 +11,14 @@ namespace Snake
     /// </summary>
     public static class ScoreManager
     {
+
+
         private static readonly string FilePath = "Nimed.txt";
         public static int Score { get; private set; } = 0;
-
         public static void AddPoint()
         {
-            Score++;
+            int points = LevelManager.GetPointsPerFood(); // например: 1, 2, 3
+            Score += points;
         }
 
         public static void Reset()

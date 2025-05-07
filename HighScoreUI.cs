@@ -2,15 +2,14 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using System;
-using System.Collections.Generic;
+    
 
 
 namespace Snake
 {
-    /// <summary>
-    /// Отображает список лучших игроков в отдельном окне.
-    /// </summary>
+
+    // Отображает список лучших игроков в отдельном окне.
+
     public static class HighScoreUI
     {
         public static void Show()
@@ -26,14 +25,15 @@ namespace Snake
 
             ListBox listBox = new ListBox
             {
-                Dock = DockStyle.Fill,
+                Dock = DockStyle.Fill, //расширяется на всю форму
                 Font = new Font("Consolas", 12)
             };
 
-            // Важно: деструктуризация (name, score)
+            // Используем деструктуризацию (name, score) для читаемости
+
             foreach ((string name, int score) in results)
             {
-                string line = $"{name.PadRight(15)}  {score}";
+                string line = $"{name.PadRight(15)}  {score}"; //PadRight(15) — выравнивает имя по ширине (15 символов)
                 listBox.Items.Add(line);
             }
 
